@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+	<appender name="filelog_daily" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="logs/daily.log" />
+		<param name="DatePattern" value="'daily.'yyyy-MM-dd'.log'" />
+		<param name="Encoding" value="UTF-8" />
+		<param name="Append" value="true" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%4d{yyyy-MM-dd HH:mm:ss, SSS} %-5p %c:(%L) - %m%n" />
+		</layout>
+	</appender>
+
+	<appender name="console" class="org.apache.log4j.ConsoleAppender">
+		<param name="Encoding" value="UTF-8" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="[%d{dd HH:mm:ss, SSS}] %t %p [%c{1}:%L] - %m%n" />
+		</layout>
+	</appender>
+
+	<root>
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+		<appender-ref ref="filelog_daily" />
+	</root>
+
+</log4j:configuration>
