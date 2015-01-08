@@ -1,2 +1,5 @@
 /scheduler.iml
 /target
+/scheduler.server/target
+/scheduler.rpc/target
+/scheduler.rpc/*.iml
