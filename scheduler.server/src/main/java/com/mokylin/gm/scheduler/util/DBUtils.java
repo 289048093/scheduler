@@ -35,45 +35,8 @@ public class DBUtils {
         }
     }
 
-    void exec(String sql) throws SQLException {
-
-        PreparedStatement stmt = conn.prepareStatement(sql);
-    }
-
     public static Connection getConn() {
         return conn;
-    }
-
-    public static List<CronScheduler> listScheduler() throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("select * from t_cron_scheduler");
-        ResultSet rs = stmt.executeQuery();
-        List<CronScheduler> list = new LinkedList<>();
-        CronScheduler scheduler = null;
-        while(rs.next()){
-            scheduler = new CronScheduler();
-            scheduler.setId(rs.getLong("id"));
-            scheduler.setCron(rs.getString("cron"));
-            scheduler.setJob(rs.getString("job"));
-            scheduler.setParams(rs.getString("params"));
-            scheduler.setDisabled(rs.getBoolean("disabled"));
-            list.add(scheduler);
-        }
-        return list;
-    }
-
-    public static void main(String[] args) throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("select * from qrtz_triggers");
-        ResultSet rs = stmt.executeQuery();
-        while(rs.next()){
-            int i=0;
-            try {
-                while(true){
-                    System.out.println(rs.getObject(++i));
-                }
-            } catch (SQLException e) {
-                continue;
-            }
-        }
     }
 
 }

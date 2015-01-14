@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -28,8 +29,10 @@ public class ConfigInfo {
     public final static String DB_POOL_SIZE = "db.pool.size";
     public final static String DB_BLOCK_SIZE = "db.block.size";
     public static final String JOB_DIR = "job.dir";
+    public static final String LOG4J_CFG = "log4j.configuration";
 
-    public static final String DEFAULT_JOB_DIR="../job";
+
+    public static final String DEFAULT_JOB_DIR = "../jobs";
 
     private Properties prop = null;
 
@@ -63,8 +66,8 @@ public class ConfigInfo {
 
     private ConfigInfo(String fileName) {
         prop = new Properties();
-        InputStream is = ConfigInfo.class.getClassLoader().getResourceAsStream(fileName);
         try {
+            InputStream is =new FileInputStream(fileName);
             prop.load(is);
         } catch (IOException e) {
             log.error(e.getMessage(), e);
@@ -72,7 +75,7 @@ public class ConfigInfo {
     }
 
     public static ConfigInfo getInstance() {
-       String cfgFileName = getConfigPath();
+        String cfgFileName = getConfigPath();
         ConfigInfo res = null;
         if ((res = cfgs.get(cfgFileName)) == null) {
             synchronized (cfgs) {

@@ -2,14 +2,25 @@ package com.mokylin.gm.scheduler.persist;
 
 import com.google.common.base.Joiner;
 import com.mokylin.gm.scheduler.entity.CronScheduler;
+import com.mokylin.gm.scheduler.persist.dbm.annotation.Custom;
+import com.mokylin.gm.scheduler.persist.dbm.annotation.EnumValue;
+import com.mokylin.gm.scheduler.persist.dbm.annotation.EnumValueType;
 import com.mokylin.gm.scheduler.persist.dbm.annotation.ID;
 import com.mokylin.gm.scheduler.persist.dbm.cache.ClassInfoCache;
+import com.mokylin.gm.scheduler.persist.dbm.util.CustomConverter;
 import com.mokylin.gm.scheduler.persist.dbm.util.DBMUtils;
+import com.mokylin.gm.scheduler.rpc.dto.JobStatus;
+import com.mokylin.gm.scheduler.rpc.dto.Page;
+import com.mokylin.gm.scheduler.rpc.dto.SchedulerDTO;
+import com.mokylin.gm.scheduler.util.DBUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.*;
 
@@ -38,6 +49,15 @@ public class CronSchedulerDAO extends BaseDAO<CronScheduler> {
             }
             otherFields.add(field);
         }
+    }
+
+    private static CronSchedulerDAO dao = new CronSchedulerDAO();
+
+    private CronSchedulerDAO() {
+    }
+
+    public static CronSchedulerDAO getInstance() {
+        return dao;
     }
 
     private static String insertSql = null;
@@ -89,7 +109,7 @@ public class CronSchedulerDAO extends BaseDAO<CronScheduler> {
         }
         return updateSql = String.format("update %s set %s where %s=?",
                 getTableName(),
-                Joiner.on("=?,").join(dbCols)+"=? ",
+                Joiner.on("=?,").join(dbCols) + "=? ",
                 DBMUtils.getDBColumnName(idField));
 
     }
@@ -109,7 +129,7 @@ public class CronSchedulerDAO extends BaseDAO<CronScheduler> {
             }
         }
         try {
-            stmt.setObject(i+1, idField.get(cronScheduler));
+            stmt.setObject(i + 1, idField.get(cronScheduler));
         } catch (IllegalAccessException e) {
             log.error(e.getMessage(), e);
         }
@@ -162,60 +182,153 @@ public class CronSchedulerDAO extends BaseDAO<CronScheduler> {
         ResultSet rs = stmt.executeQuery();
         CronScheduler cs = null;
         if (rs.next()) {
-            cs = new CronScheduler();
-            cs.setId(rs.getLong(DBMUtils.getDBColumnName(idField)));
-            for (Field field : otherFields) {
-                copyValue(rs, cs, field);
-            }
+            cs = getEntity(rs);
         }
         return cs;
     }
 
-    private boolean copyValue(ResultSet rs, CronScheduler cs, Field field) throws SQLException {
-        try {
-            String dbColumnName = DBMUtils.getDBColumnName(field);
+    private CronScheduler getEntity(ResultSet rs) throws SQLException {
+        CronScheduler cs = new CronScheduler();
+        cs.setId(rs.getLong(DBMUtils.getDBColumnName(idField)));
+        for (Field field : otherFields) {
             Class<?> fieldClass = field.getType();
-            if (Integer.class.equals(fieldClass)
-                    || int.class.equals(fieldClass)) {
-                field.set(cs, rs.getInt(dbColumnName));
-                return true;
+            String dbColumnName = DBMUtils.getDBColumnName(field);
+            Object fieldVal = null;
+            try {
+                if (Enum.class.isAssignableFrom(fieldClass)) {
+                    Custom customAnn = ClassInfoCache.getAnnotation(field, Custom.class);
+                    if (customAnn != null) {
+                        Class<? extends CustomConverter> converterClazz = customAnn.value();
+                        CustomConverter converter = ClassInfoCache.getSingleton(converterClazz);
+                        Class dbFieldClazz = converter.getDbFieldClazz();
+                        Object dbVal = copyValue(rs, dbFieldClazz, dbColumnName);
+                        fieldVal = converter.deSerialize(dbVal);
+                    } else {
+                        fieldVal = getEnumValue(field, rs);
+                    }
+                } else {
+                    fieldVal = copyValue(rs, field.getType(), dbColumnName);
+                }
+                field.set(cs, fieldVal);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
             }
-            if (Short.class.equals(fieldClass)
-                    || short.class.equals(fieldClass)) {
-                field.set(cs, rs.getShort(dbColumnName));
-                return true;
-            }
-            if (Byte.class.equals(fieldClass)
-                    || byte.class.equals(fieldClass)) {
-                field.set(cs, rs.getByte(dbColumnName));
-                return true;
-            }
-            if (Long.class.equals(fieldClass)
-                    || long.class.equals(fieldClass)) {
-                field.set(cs, rs.getLong(dbColumnName));
-                return true;
-            }
-            if (Double.class.equals(fieldClass)
-                    || double.class.equals(fieldClass)) {
-                field.set(cs, rs.getDouble(dbColumnName));
-                return true;
-            }
-            if (Float.class.equals(fieldClass)
-                    || float.class.equals(fieldClass)) {
-                field.set(cs, rs.getFloat(dbColumnName));
-                return true;
-            }
-            if (Boolean.class.equals(fieldClass)
-                    || boolean.class.equals(fieldClass)) {
-                field.set(cs, rs.getBoolean(dbColumnName));
-                return true;
-            }
-            field.set(cs, rs.getObject(dbColumnName));
-        } catch (IllegalAccessException e) {
-            log.error(e.getMessage(), e);
-        }
-        return false;
 
+        }
+        return cs;
+    }
+
+    private Object getEnumValue(Field field, ResultSet rs) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, NoSuchFieldException {
+        EnumValue enumAnn = ClassInfoCache.getAnnotation(field, EnumValue.class);
+        String dbColumnName = DBMUtils.getDBColumnName(field);
+        EnumValueType annValue = enumAnn == null ? EnumValueType.NAME : enumAnn.value();
+        //noinspection unchecked
+        Class<? extends Enum> fieldEnum = (Class<? extends Enum>) field.getType();
+        try {
+            switch (annValue) {
+                case NAME:
+                    return Enum.valueOf(fieldEnum, rs.getString(dbColumnName));
+                case STRING:
+                    return getEnumByToString(fieldEnum, rs.getString(dbColumnName));
+            }
+        } catch (SQLException e) {
+            return null;
+        }
+        return null;
+    }
+
+    private Object getEnumByToString(Class<? extends Enum> enumClass, Object fieldValue) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Method method = ClassInfoCache.getMethod(enumClass, "values");
+        Object[] objs = (Object[]) method.invoke(enumClass);
+        for (Object obj : objs) {
+            if (obj.equals(fieldValue)) {
+                return obj;
+            }
+        }
+        return null;
+    }
+
+    private Object getEnumByMethodValue(String methodName, Class<? extends Enum> enumClass, Object fieldValue) throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        Method valuesMethod = ClassInfoCache.getMethod(enumClass, "values");
+        Object[] enums = (Object[]) valuesMethod.invoke(enumClass);
+        Method getDBValueMethod = ClassInfoCache.getMethod(enumClass, methodName);
+        fieldValue = convertVal(getDBValueMethod.getReturnType(), fieldValue);
+        for (Object obj : enums) {
+            Object enumMethodReturnValue = getDBValueMethod.invoke(obj);
+            if (enumMethodReturnValue.equals(fieldValue)) {
+                return obj;
+            }
+        }
+        return null;
+    }
+
+
+    private Object convertVal(Class<?> fieldClass, Object fieldVal) {
+        if (fieldVal == null) return null;
+        if (Integer.class.equals(fieldClass)
+                || int.class.equals(fieldClass)
+                && fieldVal instanceof Number) {
+            return ((Number) fieldVal).intValue();
+        }
+        if (Short.class.equals(fieldClass)
+                || short.class.equals(fieldClass)
+                && fieldVal instanceof Number) {
+            return ((Number) fieldVal).shortValue();
+        }
+        if (Byte.class.equals(fieldClass)
+                || byte.class.equals(fieldClass)
+                && fieldVal instanceof Number) {
+            return ((Number) fieldVal).byteValue();
+        }
+        if (Long.class.equals(fieldClass)
+                || long.class.equals(fieldClass)
+                && fieldVal instanceof Number) {
+            return ((Number) fieldVal).longValue();
+        }
+        if (Double.class.equals(fieldClass)
+                || double.class.equals(fieldClass)
+                && fieldVal instanceof Number) {
+            return ((Number) fieldVal).doubleValue();
+        }
+        if (Float.class.equals(fieldClass)
+                || float.class.equals(fieldClass)
+                && fieldVal instanceof Number) {
+            return ((Number) fieldVal).floatValue();
+        }
+        return fieldVal;
+    }
+
+    private Object copyValue(ResultSet rs, Class<?> fieldClass, String dbColumnName) throws SQLException {
+
+        if (Integer.class.equals(fieldClass)
+                || int.class.equals(fieldClass)) {
+            return rs.getInt(dbColumnName);
+        }
+        if (Short.class.equals(fieldClass)
+                || short.class.equals(fieldClass)) {
+            return rs.getShort(dbColumnName);
+        }
+        if (Byte.class.equals(fieldClass)
+                || byte.class.equals(fieldClass)) {
+            return rs.getByte(dbColumnName);
+        }
+        if (Long.class.equals(fieldClass)
+                || long.class.equals(fieldClass)) {
+            return rs.getLong(dbColumnName);
+        }
+        if (Double.class.equals(fieldClass)
+                || double.class.equals(fieldClass)) {
+            return rs.getDouble(dbColumnName);
+        }
+        if (Float.class.equals(fieldClass)
+                || float.class.equals(fieldClass)) {
+            return rs.getFloat(dbColumnName);
+        }
+        if (Boolean.class.equals(fieldClass)
+                || boolean.class.equals(fieldClass)) {
+            return rs.getBoolean(dbColumnName);
+        }
+        return rs.getObject(dbColumnName);
     }
 
 
@@ -238,17 +351,12 @@ public class CronSchedulerDAO extends BaseDAO<CronScheduler> {
 
     @Override
     public List<CronScheduler> findAll() throws SQLException {
-        String sql = String.format(getFindAllSql());
         PreparedStatement stmt = getConn().prepareStatement(getFindAllSql());
         ResultSet rs = stmt.executeQuery();
         CronScheduler cs = null;
         List<CronScheduler> list = new LinkedList<>();
         while (rs.next()) {
-            cs = new CronScheduler();
-            cs.setId(rs.getLong(DBMUtils.getDBColumnName(idField)));
-            for (Field field : otherFields) {
-                copyValue(rs, cs, field);
-            }
+            cs = getEntity(rs);
             list.add(cs);
         }
         return list;
@@ -271,10 +379,119 @@ public class CronSchedulerDAO extends BaseDAO<CronScheduler> {
             cs = new CronScheduler();
             cs.setId(rs.getLong(DBMUtils.getDBColumnName(idField)));
             for (Field field : otherFields) {
-                copyValue(rs, cs, field);
+                try {
+                    field.set(cs, copyValue(rs, field.getClass(), DBMUtils.getDBColumnName(field)));
+                } catch (IllegalAccessException e) {
+                    log.error(e.getMessage(), e);
+                }
             }
             list.add(cs);
         }
         return list;
+    }
+
+    @Override
+    public List<CronScheduler> find(String sql, List<Object> values, int pageSize, int pageNo) throws SQLException {
+        return null;
+    }
+
+
+    public Page<SchedulerDTO> pageList(String job, String cron, Boolean disabled, String data, int pageSize, int pageNo) throws SQLException {
+        StringBuilder sql = new StringBuilder(getFindAllSql()).append(" where 1=1 ");
+        StringBuilder countSql = new StringBuilder("select count(*) from ")
+                .append(DBMUtils.getDbTableName(CronScheduler.class))
+                .append(" where 1=1 ");
+        List<Object> values = new LinkedList<>();
+        StringBuilder where = new StringBuilder();
+        if (StringUtils.isNotBlank(job)) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "job"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(job);
+        }
+        if (StringUtils.isNotBlank(cron)) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "cron"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(cron);
+        }
+        if (disabled != null) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "disabled"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(disabled);
+        }
+        if (StringUtils.isNotBlank(data)) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "data"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(data);
+        }
+        Page<SchedulerDTO> page = new Page<>(pageNo, pageSize);
+        sql.append(where).append(" limit ").append(page.getStart()).append(",").append(page.getLimit());
+        countSql.append(where);
+        Connection conn = getConn();
+        PreparedStatement stmt = conn.prepareStatement(sql.toString());
+        PreparedStatement countStmt = conn.prepareStatement(countSql.toString());
+        for (int i = 0; i < values.size(); i++) {
+            Object obj = values.get(i);
+            stmt.setObject(i + 1, obj);
+            countStmt.setObject(i + 1, obj);
+        }
+        ResultSet rs = stmt.executeQuery();
+        List<SchedulerDTO> dtos = new LinkedList<>();
+        SchedulerDTO dto;
+        CronScheduler cs;
+        while (rs.next()) {
+            dto = new SchedulerDTO();
+            cs = getEntity(rs);
+            BeanUtils.copyProperties(cs, dto,new String[]{"status"});
+            dto.setStatus(JobStatus.of(cs.getStatus()));
+            dtos.add(dto);
+        }
+        page.setResult(dtos);
+        ResultSet countRs = countStmt.executeQuery();
+        if (countRs.next()) {
+            page.setTotalCount(countRs.getInt(1));
+        }
+
+        return page;
+    }
+
+
+    public List<CronScheduler> list(String job, String cron, Boolean disabled, String data) throws SQLException {
+        StringBuilder sql = new StringBuilder(getFindAllSql()).append(" where 1=1 ");
+        List<Object> values = new LinkedList<>();
+        StringBuilder where = new StringBuilder();
+        if (StringUtils.isNotBlank(job)) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "job"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(job);
+        }
+        if (StringUtils.isNotBlank(cron)) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "cron"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(cron);
+        }
+        if (disabled != null) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "disabled"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(disabled);
+        }
+        if (StringUtils.isNotBlank(data)) {
+            String dbColumnName = DBMUtils.getDBColumnName(ClassInfoCache.getField(CronScheduler.class, "params"));
+            where.append(" and ").append(dbColumnName).append("=? ");
+            values.add(data);
+        }
+        Connection conn = getConn();
+        sql.append(where);
+        PreparedStatement stmt = conn.prepareStatement(sql.toString());
+        for (int i = 0; i < values.size(); i++) {
+            Object obj = values.get(i);
+            stmt.setObject(i + 1, obj);
+        }
+        ResultSet rs = stmt.executeQuery();
+        List<CronScheduler> cses = new LinkedList<>();
+        CronScheduler cs;
+        while (rs.next()) {
+            cses.add(getEntity(rs));
+        }
+        return cses;
     }
 }

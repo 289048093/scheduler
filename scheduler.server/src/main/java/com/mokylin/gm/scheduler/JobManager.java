@@ -11,7 +11,7 @@ public interface JobManager {
 
     void initLoad();
 
-    void addOrUpdateJob(CronScheduler cs);
+    void addJob(CronScheduler cs);
 
     void removeJob(CronScheduler cs);
 

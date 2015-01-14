@@ -2,18 +2,11 @@ package com.mokylin.gm.scheduler.jobloader;
 
 import com.mokylin.gm.scheduler.util.ConfigInfo;
 import com.mokylin.gm.scheduler.util.FileHelper;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -25,13 +18,16 @@ import java.util.Set;
 public class ClassHelper {
     private static final Logger log = LoggerFactory.getLogger(ClassHelper.class);
 
-    public static DynamicClassLoader dClassLoader = new DynamicClassLoader(Thread.currentThread().getContextClassLoader());
+    public static DynamicClassLoader dClassLoader;
 
     public static void init(){
         try {
-            ConfigInfo.setConfigPath("scheduler.properties");
-            String jobDir = FileHelper.getJobDir();
-            dClassLoader.addFolder(jobDir);
+            dClassLoader =  new DynamicClassLoader(Thread.currentThread().getContextClassLoader());
+            Set<File> jobDirs = FileHelper.getAllJobDirs();
+            for(File dir:jobDirs){
+                dClassLoader.addFolder(dir.getAbsolutePath());
+            }
+            Thread.currentThread().setContextClassLoader(dClassLoader);
         } catch (IOException e) {
             log.error(e.getMessage(),e);
         }
@@ -42,4 +38,21 @@ public class ClassHelper {
             return dClassLoader.loadClass(className);
     }
 
+    public static void addNewClassPath(String... dirs) throws IOException {
+        dClassLoader.addFolder(dirs);
+    }
+
+    public static void reloadJobPath(){
+        try {
+            Set<File> newJobDirs = FileHelper.getAllJobDirs();
+            if(newJobDirs!=null){
+                for(File dir:newJobDirs){
+                    ClassHelper.addNewClassPath(dir.getAbsolutePath());
+                }
+            }
+
+        } catch (IOException e) {
+            log.error(e.getMessage(),e);
+        }
+    }
 }

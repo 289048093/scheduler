@@ -75,4 +75,100 @@
 
     </dependencies>
 
+
+    <build>
+        <!--<filters>-->
+            <!--<filter>src/main/filter/filter_dev.properties</filter>-->
+        <!--</filters>-->
+        <!--<resources>-->
+            <!--<resource>-->
+                <!--<directory>conf</directory>-->
+                <!--<filtering>true</filtering>-->
+            <!--</resource>-->
+        <!--</resources>-->
+        <!--<testResources>-->
+            <!--<testResource>-->
+                <!--<directory>conf</directory>-->
+                <!--<filtering>true</filtering>-->
+            <!--</testResource>-->
+        <!--</testResources>-->
+        <plugins>
+            <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>1.6</version>
+            <executions>
+                <execution>
+                    <id>compile</id>
+                    <phase>compile</phase>
+                    <configuration>
+                        <target>
+                            <echo message="********************copy profile propertie file *************************"/>
+                            <copy file="conf/log4j.xml"  tofile="${project.build.directory}/conf/log4j.xml" overwrite="true"/>
+                            <copy file="conf/provider.xml"  tofile="${project.build.directory}/conf/provider.xml" overwrite="true"/>
+                            <copy file="conf/scheduler.properties"  tofile="${project.build.directory}/conf/scheduler.properties" overwrite="true"/>
+                        </target>
+                    </configuration>
+                    <goals>
+                        <goal>run</goal>
+                    </goals>
+                </execution>
+            </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/log4j.xml</exclude>
+                        <exclude>**/scheduler.properties</exclude>
+                        <exclude>**/provider.xml</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.2.1</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>/assembly/assembly.xml</descriptor>
+                    </descriptors>
+                    <finalName>${project.artifactId}</finalName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--生产环境部署通用打包 profile-->
+        <profile>
+            <id>prod</id>
+            <build>
+                <filters>
+                    <filter>src/main/filter/filter_prod.properties</filter>
+                </filters>
+            </build>
+        </profile>
+        <!--测试环境部署通用打包 profile-->
+        <profile>
+            <id>daily</id>
+            <build>
+                <filters>
+                    <filter>src/main/filter/filter_daily.properties</filter>
+                </filters>
+            </build>
+        </profile>
+    </profiles>
+
+
 </project>

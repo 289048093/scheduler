@@ -2,8 +2,8 @@ package com.mokylin.gm.scheduler;
 
 import com.mokylin.gm.scheduler.entity.CronScheduler;
 import com.mokylin.gm.scheduler.jobloader.ClassHelper;
+import com.mokylin.gm.scheduler.persist.CronSchedulerDAO;
 import com.mokylin.gm.scheduler.util.Constant;
-import com.mokylin.gm.scheduler.util.DBUtils;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
@@ -19,10 +19,9 @@ import java.util.List;
 
 public class JobManagerImpl implements JobManager {
     private final static Logger log = LoggerFactory.getLogger(JobManagerImpl.class);
+    private CronSchedulerDAO dao = CronSchedulerDAO.getInstance();
 
     private static Scheduler scheduler;
-
-   private static List<CronScheduler> schedulers;
 
     static {
         try {
@@ -43,11 +42,18 @@ public class JobManagerImpl implements JobManager {
         }
     }
 
+    private static JobManagerImpl jobManager = new JobManagerImpl();
+
+    private JobManagerImpl(){}
+    public static JobManagerImpl getInstance() {
+        return jobManager;
+    }
+
     @Override
     public void initLoad() {
         List<CronScheduler> schedulers;
         try {
-            schedulers = DBUtils.listScheduler();
+            schedulers = dao.findAll();
         } catch (SQLException e) {
             log.error(e.getMessage(), e);
             return;
@@ -56,15 +62,15 @@ public class JobManagerImpl implements JobManager {
             if (cs.isDisabled()) {
                 continue;
             }
-            addOrUpdateJob(cs);
+            addJob(cs);
         }
     }
 
     @Override
-    public void addOrUpdateJob(CronScheduler cs) {
-        if(cs.isDisabled()){
-            return;
-        }
+    public void addJob(CronScheduler cs) {
+
+        ClassHelper.reloadJobPath();
+
         Class aClass;
         try {
             aClass = ClassHelper.forName(cs.getJob());
@@ -92,15 +98,16 @@ public class JobManagerImpl implements JobManager {
                     .build();
 
             boolean jobExist = scheduler.checkExists(job.getKey());
-            boolean triggerExist = scheduler.checkExists(trigger.getKey());
-            if (jobExist && triggerExist) {
-                scheduler.resumeJob(job.getKey());
+//            boolean triggerExist = scheduler.checkExists(trigger.getKey());
+            if (jobExist) {
+                if (cs.isDisabled()) {
+                    scheduler.deleteJob(job.getKey());
+                } else {
+                    scheduler.resumeJob(job.getKey());
+                }
                 return;
             }
-            if (jobExist && !triggerExist) {
-//                scheduler.getTriggersOfJob()
-                return;
-            }
+            if (cs.isDisabled()) return;
             scheduler.scheduleJob(job, trigger);
         } catch (Exception e) {
             log.error("invalid cron expression:{}", cs.getCron());

@@ -36,20 +36,7 @@ public class JobTest {
     }
 
     public void init() {
-        ConfigInfo.setConfigPath("scheduler.properties");
-        List<CronScheduler> schedulers;
-        try {
-            schedulers = DBUtils.listScheduler();
-        } catch (SQLException e) {
-            log.error(e.getMessage(), e);
-            return;
-        }
-        for (CronScheduler cs : schedulers) {
-            if (cs.isDisabled()) {
-                continue;
-            }
 
-        }
     }
 
     private void startupTask(CronScheduler cs) {
@@ -100,7 +87,7 @@ public class JobTest {
         return cs.getId() + cs.getJob() + cs.getCron() + cs.getParams() + "_TriggerID";
     }
 
-    public static void test1() throws SchedulerException, ParseException {
+    public static void test1() throws SchedulerException, ParseException, IOException {
 
 
 // define the job and tie it to our HelloJob class
@@ -110,14 +97,15 @@ public class JobTest {
         Class<? extends Job> jobClass = Job2.class;
         System.out.println("asdf");
 
+        JobKey jobKey = JobKey.jobKey(jobClass.getName(), "group1");
         JobDetail job = JobBuilder.newJob(jobClass)
-                .withIdentity(jobClass.getName(), "group1")
+                .withIdentity(jobKey)
                 .usingJobData("name", "tom")
                 .usingJobData("addr", "aaddr")
                 .build();
 
 // Trigger the job to run now, and then repeat every 40 seconds
-        CronExpression cron = new CronExpression("0/2 * * * * ?");
+        CronExpression cron = new CronExpression("* * 10/2 * * ? ");
         CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cron);
         SimpleScheduleBuilder simpleScheduleBuilder = SimpleScheduleBuilder.simpleSchedule()
                 .withIntervalInSeconds(40)
@@ -168,11 +156,15 @@ public class JobTest {
         System.out.println(triggersOfJob.size());
         System.out.println(triggersOfJob.get(0).getKey());
         TriggerKey key = triggersOfJob.get(0).getKey();
-        scheduler.unscheduleJob(key);
+//        scheduler.unscheduleJob(key);
         System.out.println("====="+scheduler.checkExists(key));
-        scheduler.deleteJob(job.getKey());
+
+
+        jobKey = JobKey.jobKey(jobClass.getName(), "group1");
+        scheduler.deleteJob(jobKey);
+        System.in.read();
 //        scheduler.rescheduleJob(triggersOfJob.get(0).getKey(),trigger);
-        scheduler.scheduleJob(job,trigger);
+//        scheduler.scheduleJob(job,trigger);
 //        scheduler.rescheduleJob(trigger.getKey(),trigger);
         triggersOfJob = scheduler.getTriggersOfJob(job.getKey());
         System.out.println(triggersOfJob.size());
@@ -188,7 +180,7 @@ public class JobTest {
 //        CronTrigger cronTrigger = TriggerBuilder.newTrigger().withIdentity(triggerKey).withSchedule(CronScheduleBuilder.cronSchedule(task.getCron())).build();
     }
 
-    public static void main(String[] args) throws SchedulerException, ParseException {
+    public static void main(String[] args) throws SchedulerException, ParseException, IOException {
         test1();
     }
 
@@ -196,11 +188,11 @@ public class JobTest {
         SchedulerFactory schedFact = new StdSchedulerFactory();
 
         Scheduler sched = schedFact.getScheduler();
-
+        JobKey jobKey = JobKey.jobKey("myJob", "group1");
         sched.start();
         // define the job and tie it to our HelloJob class
         JobDetail job = JobBuilder.newJob(HelloJob.class)
-                .withIdentity("myJob", "group1")
+                .withIdentity(jobKey)
                 .usingJobData("name", "tom")
                 .build();
 
@@ -231,9 +223,13 @@ public class JobTest {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        sched.deleteJob(job.getKey());
-        sched.scheduleJob(job, trigger);
-
+        sched.deleteJob(jobKey);
+//        sched.scheduleJob(job, trigger);
+        try {
+            System.in.read();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 }

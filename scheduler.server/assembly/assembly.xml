@@ -1,0 +1,36 @@
+<assembly>
+    <id>1</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <dependencySets>
+        <dependencySet>
+            <useProjectArtifact>true</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+        </dependencySet>
+    </dependencySets>
+    <fileSets>
+        <fileSet>
+            <directory>/jobs</directory>
+            <outputDirectory>/jobs</outputDirectory>
+            <!--<includes>-->
+                <!--<include>*</include>-->
+            <!--</includes>-->
+        </fileSet>
+        <fileSet>
+            <directory>/conf</directory>
+            <outputDirectory>/conf</outputDirectory>
+            <!--<includes>-->
+            <!--<include>*</include>-->
+            <!--</includes>-->
+        </fileSet>
+        <fileSet>
+            <directory>/bin</directory>
+            <outputDirectory>/bin</outputDirectory>
+            <!--<includes>-->
+                <!--<include>startup.sh</include>-->
+                <!--<include>startup.bat</include>-->
+            <!--</includes>-->
+        </fileSet>
+    </fileSets>
+</assembly>

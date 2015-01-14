@@ -1,5 +1,6 @@
 package com.mokylin.gm.scheduler.persist.dbm.util;
 
+import com.mokylin.gm.scheduler.entity.CronScheduler;
 import com.mokylin.gm.scheduler.persist.dbm.annotation.*;
 import com.mokylin.gm.scheduler.persist.dbm.cache.ClassInfoCache;
 import org.apache.commons.lang3.StringUtils;
@@ -8,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.*;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
@@ -32,10 +34,10 @@ public class DBMUtils {
         return tableName;
     }
 
-    public static String getDBColumnName(Field field){
+    public static String getDBColumnName(Field field) {
         Column ann = ClassInfoCache.getAnnotation(field, Column.class);
         String value = ann.value();
-        if(StringUtils.isNotBlank(value)){
+        if (StringUtils.isNotBlank(value)) {
             return value;
         }
         return field.getName();
@@ -47,7 +49,7 @@ public class DBMUtils {
      * @param dbo
      * @return
      */
-    public <T> T getModel(ResultSet dbo,Class<T> clazz) {
+    public <T> T getModel(ResultSet dbo, Class<T> clazz) {
         if (dbo == null) {
             return null;
         }
@@ -70,38 +72,79 @@ public class DBMUtils {
                     continue;
                 }
                 Object fieldVal = null;
-                Class<?> type = field.getType();
-                if (Enum.class.isAssignableFrom(type)) {
-                    fieldVal = getEnumValue(field, dbVal);
-                } else {
-                    fieldVal = dbVal;
-                }
-                Custom customAnn = ClassInfoCache.getAnnotation(field, Custom.class);
-//                if (BaseModel.class.isAssignableFrom(field.getType())) {
-//                    fieldVal = field.getType().newInstance();
-//                    ((BaseModel) fieldVal).setId((ObjectId) dbVal);
-//                }
-                if (customAnn != null) {
-                    Class<? extends CustomConverter> converterClazz = customAnn.converter();
-                    CustomConverter converter = ClassInfoCache.getSingleton(converterClazz);
-                    converter.setFieldClazz(field.getType());
-                    Type type1 = ((ParameterizedType) converter.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
-                    dbVal = convertVal((Class) type1, dbVal);
-                    fieldVal = converter.deSerialize(dbVal);
-                }
                 Class<?> fieldClass = field.getType();
-                if (!fieldClass.isAssignableFrom(fieldVal.getClass())) {
-                    fieldVal = convertVal(fieldClass, fieldVal);
+
+                if (!fieldClass.isAssignableFrom(dbVal.getClass())) {
+                    if (Enum.class.isAssignableFrom(fieldClass)) {
+                        Custom customAnn = ClassInfoCache.getAnnotation(field, Custom.class);
+                        if (customAnn != null) {
+                            Class<? extends CustomConverter> converterClazz = customAnn.value();
+                            CustomConverter converter = ClassInfoCache.getSingleton(converterClazz);
+                            Class dbFieldClazz = converter.getDbFieldClazz();
+                            dbVal = convertVal(dbFieldClazz, dbVal);
+                            fieldVal = converter.deSerialize(dbVal);
+                        } else {
+                            fieldVal = getEnumValue(field, dbVal);
+                        }
+                    }
+                    fieldVal = convertVal(fieldClass, dbVal);
                 }
                 field.set(t, fieldVal);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
             }
         }
-        if(LOGGER.isDebugEnabled()){
-            LOGGER.debug("dbObject to model,dbo:{},model:{}",dbo,t);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("dbObject to model,dbo:{},model:{}", dbo, t);
         }
         return t;
+    }
+
+    private boolean copyValue(ResultSet rs, CronScheduler cs, Field field) throws SQLException {
+        try {
+            String dbColumnName = DBMUtils.getDBColumnName(field);
+            Class<?> fieldClass = field.getType();
+            if (Integer.class.equals(fieldClass)
+                    || int.class.equals(fieldClass)) {
+                field.set(cs, rs.getInt(dbColumnName));
+                return true;
+            }
+            if (Short.class.equals(fieldClass)
+                    || short.class.equals(fieldClass)) {
+                field.set(cs, rs.getShort(dbColumnName));
+                return true;
+            }
+            if (Byte.class.equals(fieldClass)
+                    || byte.class.equals(fieldClass)) {
+                field.set(cs, rs.getByte(dbColumnName));
+                return true;
+            }
+            if (Long.class.equals(fieldClass)
+                    || long.class.equals(fieldClass)) {
+                field.set(cs, rs.getLong(dbColumnName));
+                return true;
+            }
+            if (Double.class.equals(fieldClass)
+                    || double.class.equals(fieldClass)) {
+                field.set(cs, rs.getDouble(dbColumnName));
+                return true;
+            }
+            if (Float.class.equals(fieldClass)
+                    || float.class.equals(fieldClass)) {
+                field.set(cs, rs.getFloat(dbColumnName));
+                return true;
+            }
+            if (Boolean.class.equals(fieldClass)
+                    || boolean.class.equals(fieldClass)) {
+                field.set(cs, rs.getBoolean(dbColumnName));
+                return true;
+            }
+                field.set(cs, rs.getObject(dbColumnName));
+        } catch (IllegalAccessException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        return false;
+
     }
 
     private Object getEnumValue(Field field, Object dbVal) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, NoSuchFieldException {
@@ -118,12 +161,10 @@ public class DBMUtils {
                 }
             case STRING:
                 return getEnumByToString(fieldEnum, dbVal);
-            case CUSTOM:
-                String enumMethodName = enumAnn == null ? "name" : enumAnn.method();
-                return getEnumByMethodValue(enumMethodName, fieldEnum, dbVal);
         }
         return null;
     }
+
     private Object getEnumByToString(Class<? extends Enum> enumClass, Object fieldValue) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Method method = ClassInfoCache.getMethod(enumClass, "values");
         Object[] objs = (Object[]) method.invoke(enumClass);
@@ -134,6 +175,7 @@ public class DBMUtils {
         }
         return null;
     }
+
     private Object getEnumByMethodValue(String methodName, Class<? extends Enum> enumClass, Object fieldValue) throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         Method valuesMethod = ClassInfoCache.getMethod(enumClass, "values");
         Object[] enums = (Object[]) valuesMethod.invoke(enumClass);

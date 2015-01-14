@@ -3,6 +3,7 @@ rem JAVA_OPTS=
 
 set ROOT_PATH=../
 
+
 rem class path
 
 set TOOLS_JAR_PATH=%ROOT_PATH%/lib/tools.jar

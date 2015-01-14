@@ -1,49 +1,36 @@
-package com.mokylin.gm.scheduler.entity;
+package com.mokylin.gm.scheduler.rpc.dto;
 
-import com.mokylin.gm.scheduler.persist.dbm.annotation.Column;
-import com.mokylin.gm.scheduler.persist.dbm.annotation.ID;
-import com.mokylin.gm.scheduler.persist.dbm.annotation.Table;
-
+import java.io.Serializable;
 import java.util.Date;
 
 /**
- *
  * @author 李朝(Li.Zhao)
- * @since 2015/1/4.
+ * @since 2015/1/12.
  */
-@Table("t_cron_scheduler")
-public class CronScheduler {
 
-    @ID
-    @Column
+public class SchedulerDTO implements Serializable {
+
     private long id;
 
-    @Column
     private String cron;
 
-    @Column
     private String job;
 
-    @Column
     private String params;
 
-    @Column("create_time")
     private Date createTime;
 
-    @Column("update_time")
     private Date updateTime;
 
-    @Column
     private boolean disabled;
 
-    @Column
-    private int status;
+    private JobStatus status;
 
-    public int getStatus() {
+    public JobStatus getStatus() {
         return status;
     }
 
-    public void setStatus(int status) {
+    public void setStatus(JobStatus status) {
         this.status = status;
     }
 

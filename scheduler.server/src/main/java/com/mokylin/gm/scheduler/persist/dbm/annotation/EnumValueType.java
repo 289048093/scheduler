@@ -16,10 +16,4 @@ public enum EnumValueType {
      * 取 {@link Enum#toString()} 的值
      */
     STRING,
-
-
-    /**
-     * 自定义
-     */
-    CUSTOM
 }

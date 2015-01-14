@@ -25,4 +25,6 @@ public interface DAO<T> {
     List<T> findAll() throws SQLException;
 
     List<T> find(String sql, List<Object> values) throws SQLException;
+
+    List<T> find(String sql, List<Object> values,int pageSize,int pageNo) throws SQLException;
 }

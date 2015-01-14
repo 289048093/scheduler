@@ -5,15 +5,13 @@ package com.mokylin.gm.scheduler.util;
  * @since 2015/1/7.
  */
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Service Platform Architecture Team (spat@58.com)
@@ -124,12 +122,30 @@ public class FileHelper {
      * @throws java.io.IOException
      */
     public static Set<String> getUniqueLibPath(String... dirs) throws IOException {
+//        return getUniqueLibPath(dirs,"rar", "jar", "war", "ear","class","xml","properties");
+        return getUniqueLibPath(dirs,"rar", "jar", "war", "ear","class","xml","properties");
+    }
+
+    public static Set<String> getAllPath(String... dirs) throws IOException {
+//        return getUniqueLibPath(dirs,"rar", "jar", "war", "ear","class","xml","properties");
+        return getUniqueLibPath(dirs,null);
+    }
+
+
+    /**
+     * get all jar/war/ear which in dir
+     *
+     * @param dirs
+     * @return
+     * @throws java.io.IOException
+     */
+    public static Set<String> getUniqueLibPath(String[] dirs,String... ext) throws IOException {
 
         Set<String> jarList = new HashSet<String>();
         List<String> fileNameList = new ArrayList<String>();
 
         for (String dir : dirs) {
-            List<File> fileList = FileHelper.getFiles(dir, "rar", "jar", "war", "ear");
+            List<File> fileList = FileHelper.getFiles(dir, ext);
             if (fileList != null) {
                 for (File file : fileList) {
                     if (!fileNameList.contains(file.getName())) {
@@ -150,24 +166,27 @@ public class FileHelper {
      */
     private static void getFiles(File f, List<File> fileList, String... extension) {
         File[] files = f.listFiles();
-        for (int i = 0; i < files.length; i++) {
-            if (files[i].isDirectory()) {
-                getFiles(files[i], fileList, extension);
-            } else if (files[i].isFile()) {
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    fileList.add(file);
+                    getFiles(file, fileList, extension);
+                } else if (file.isFile()) {
 
-                String fileName = files[i].getName().toLowerCase();
-                boolean isAdd = false;
-                if (extension != null) {
-                    for (String ext : extension) {
-                        if (fileName.lastIndexOf(ext) == fileName.length() - ext.length()) {
-                            isAdd = true;
-                            break;
+                    String fileName = file.getName().toLowerCase();
+                    boolean isAdd = false;
+                    if (extension != null) {
+                        for (String ext : extension) {
+                            if (ext == null || fileName.endsWith(ext)) {
+                                isAdd = true;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (isAdd) {
-                    fileList.add(files[i]);
+                    if (isAdd) {
+                        fileList.add(file);
+                    }
                 }
             }
         }
@@ -213,7 +232,17 @@ public class FileHelper {
         return FileHelper.class.getClassLoader().getResource("").getPath();
     }
 
-    public static String getJobDir() throws IOException {
+    private static Set<File> allJobDirs = new HashSet<>();
+    static{
+        try {
+            allJobDirs = getAllJobDirs();
+        } catch (IOException e) {
+            log.error(e.getMessage(),e);
+        }
+    }
+
+
+    public static Set<File> getAllJobDirs() throws IOException {
         String jobDir = ConfigInfo.getInstance().getString(ConfigInfo.JOB_DIR);
         if (StringUtils.isBlank(jobDir)) {
             jobDir = new File(getContextPath(), ConfigInfo.DEFAULT_JOB_DIR).getCanonicalPath();
@@ -222,7 +251,33 @@ public class FileHelper {
         if (!dir.exists()) {
             createFolder(dir);
         }
-        return jobDir;
+        Collections.addAll(allJobDirs, dir.listFiles(new FileFilter() {
+
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.isDirectory();
+            }
+        }));
+        return allJobDirs;
+    }
+
+    public static Set<File> getNewJobDirs() throws IOException {
+        String jobDir = ConfigInfo.getInstance().getString(ConfigInfo.JOB_DIR);
+        if (StringUtils.isBlank(jobDir)) {
+            jobDir = new File(getContextPath(), ConfigInfo.DEFAULT_JOB_DIR).getCanonicalPath();
+        }
+        File dir = new File(jobDir);
+        if (!dir.exists()) {
+            createFolder(dir);
+        }
+        Set<File> files = Sets.newHashSet(dir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File dir) {
+                return dir.isDirectory() && !allJobDirs.contains(dir);
+            }
+        }));
+        allJobDirs.addAll(files);
+        return files;
     }
 
 }
