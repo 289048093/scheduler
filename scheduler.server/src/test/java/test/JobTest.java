@@ -2,17 +2,15 @@ package test;
 
 import com.mokylin.gm.scheduler.entity.CronScheduler;
 import com.mokylin.gm.scheduler.jobloader.ClassHelper;
-import com.mokylin.gm.scheduler.util.ConfigInfo;
 import com.mokylin.gm.scheduler.util.Constant;
-import com.mokylin.gm.scheduler.util.DBUtils;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 
@@ -94,30 +92,31 @@ public class JobTest {
 
         String jobClassStr = "";
 
-        Class<? extends Job> jobClass = Job2.class;
+        Class<? extends Job> jobClass = HelloJob.class;
         System.out.println("asdf");
 
         JobKey jobKey = JobKey.jobKey(jobClass.getName(), "group1");
         JobDetail job = JobBuilder.newJob(jobClass)
                 .withIdentity(jobKey)
-                .usingJobData("name", "tom")
-                .usingJobData("addr", "aaddr")
+                .usingJobData("params", "{\"invoke_identify\":\"broadcast\",\"rid\": 0}")
                 .build();
 
 // Trigger the job to run now, and then repeat every 40 seconds
-        CronExpression cron = new CronExpression("* * 10/2 * * ? ");
+        CronExpression cron = new CronExpression("0/5 * * * * ? ");
         CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cron);
         SimpleScheduleBuilder simpleScheduleBuilder = SimpleScheduleBuilder.simpleSchedule()
                 .withIntervalInSeconds(40)
                 .repeatForever();
 
 
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
         TriggerBuilder<CronTrigger> triggerBuilder = TriggerBuilder.newTrigger()
                 .withIdentity("trigger1", "group1")
+                .startAt(sdf.parse("2015-01-15 15:28:00"))
+                .endAt(sdf.parse("2015-01-15 15:28:30"))
                 .withSchedule(cronScheduleBuilder)
-                .usingJobData("name", "jack")
-                .forJob(job)
-                .startNow();
+                .forJob(job);
         Trigger trigger = triggerBuilder
                 .build();
 // Tell quartz to schedule the job using our trigger

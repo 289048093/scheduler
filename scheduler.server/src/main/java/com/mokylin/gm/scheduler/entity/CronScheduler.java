@@ -33,11 +33,34 @@ public class CronScheduler {
     @Column("update_time")
     private Date updateTime;
 
+    @Column("start_time")
+    private Date startTime;
+
+    @Column("end_time")
+    private Date endTime;
+
     @Column
     private boolean disabled;
 
     @Column
     private int status;
+
+
+    public Date getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(Date startTime) {
+        this.startTime = startTime;
+    }
+
+    public Date getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(Date endTime) {
+        this.endTime = endTime;
+    }
 
     public int getStatus() {
         return status;

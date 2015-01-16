@@ -19,9 +19,9 @@
     </dubbo:consumer>
 
     <!-- 生成远程服务代理，可以和本地bean一样使用demoService -->
-    <dubbo:reference interface="com.mokylin.gm.scheduler.rpc.SchedulerService"
+    <dubbo:reference interface="com.mokylin.gm.scheduler.rpc.GmSchedulerCallBack"
                      id="schedulerService"
-                     url="dubbo://127.0.0.1:20882/gm_scheduler"
+                     url="dubbo://127.0.0.1:20881/gm_broadcast_scheduler"
                      version="1.0"/>
                      <!--url="dubbo://127.0.0.1:20881/com.mokylin.gm.scheduler.rpc.SchedulerService"-->
 

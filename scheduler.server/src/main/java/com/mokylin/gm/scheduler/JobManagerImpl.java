@@ -94,6 +94,14 @@ public class JobManagerImpl implements JobManager {
                     .withIdentity(getTriggerKey(cs))
                     .withSchedule(cronScheduleBuilder)
                     .forJob(job);
+            if(cs.getStartTime()!=null){
+                triggerBuilder.startAt(cs.getStartTime());
+            }else{
+                triggerBuilder.startNow();
+            }
+            if(cs.getEndTime()!=null){
+                triggerBuilder.endAt(cs.getEndTime());
+            }
             Trigger trigger = triggerBuilder
                     .build();
 

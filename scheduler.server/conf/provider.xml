@@ -13,7 +13,7 @@
     <!--dubbo集群开发，请激活下面条目，并注销上面的多播multicast -->
     <!--<dubbo:registry protocol="zookeeper" address="10.254.201.232:2181,10.254.201.68:2181" />-->
     <!-- 用dubbo协议在20880端口暴露服务 -->
-    <dubbo:protocol name="dubbo" port="20881" ></dubbo:protocol>
+    <dubbo:protocol name="dubbo" port="20882" ></dubbo:protocol>
 
     <!-- 声明需要暴露的服务接口 -->
     <dubbo:service interface="com.mokylin.gm.scheduler.rpc.SchedulerService" ref="schedulerService" path="gm_scheduler" version="1.0"/>

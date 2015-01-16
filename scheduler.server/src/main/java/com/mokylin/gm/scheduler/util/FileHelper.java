@@ -123,7 +123,7 @@ public class FileHelper {
      */
     public static Set<String> getUniqueLibPath(String... dirs) throws IOException {
 //        return getUniqueLibPath(dirs,"rar", "jar", "war", "ear","class","xml","properties");
-        return getUniqueLibPath(dirs,"rar", "jar", "war", "ear","class","xml","properties");
+        return getUniqueLibPath(dirs,"rar", "jar", "war", "ear");
     }
 
     public static Set<String> getAllPath(String... dirs) throws IOException {
@@ -177,11 +177,14 @@ public class FileHelper {
                     boolean isAdd = false;
                     if (extension != null) {
                         for (String ext : extension) {
-                            if (ext == null || fileName.endsWith(ext)) {
+                            if (fileName.endsWith(ext)) {
                                 isAdd = true;
                                 break;
                             }
                         }
+                    }
+                    if(extension == null){
+                        isAdd = true;
                     }
 
                     if (isAdd) {

@@ -7,6 +7,14 @@ source /etc/profile
 cd $(dirname "$0")
 
 ROOT_PATH=../
+TMP_DIR=$ROOT_PATH/tmp
+SCHEDULER_PID=$TMP_DIR/pid
+MAIN_CLASS=com.mokylin.gm.scheduler.Main
+
+if [ -e $SCHEDULER_PID ]; then
+    echo "scheduler is aready running !!!"
+    exit 1
+fi
 
 # class path
 CLASS_PATH=.:$JAVA_HOME/lib/tools.jar
@@ -17,7 +25,6 @@ done
 
 echo $CLASS_PATH
 
-MAIN_CLASS=com.mokylin.gm.scheduler.Main
 
 cd $ROOT_PATH/lib
 #startup
@@ -25,7 +32,6 @@ java $JAVA_OPTS -classpath $CLASS_PATH $MAIN_CLASS &
 
 echo pid:$!
 
-TMP_DIR=$ROOT_PATH/tmp
 
 if [ ! -d $TMP_DIR ]; then
     mkdir $TMP_DIR

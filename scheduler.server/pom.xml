@@ -12,6 +12,7 @@
     <artifactId>scheduler.server</artifactId>
 
     <dependencies>
+
         <dependency>
             <groupId>com.mokylin.gm.platform</groupId>
             <artifactId>scheduler.rpc</artifactId>

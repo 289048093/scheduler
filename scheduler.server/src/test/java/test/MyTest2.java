@@ -47,19 +47,26 @@ public class MyTest2 {
         DynamicClassLoader cl = new DynamicClassLoader(Thread.currentThread().getContextClassLoader());
         cl.addFolder("E:\\workspace\\gm_platform\\gm_gccp\\code\\trunk\\gm-parent\\gm-job\\gmjob-impl\\target");
 //        URLClassLoader cl = new URLClassLoader(new URL[]{new File("E:\\\\workspace\\\\gm_platform\\\\gm_gccp\\\\code\\\\trunk\\\\gm-parent\\\\gm-job\\\\gmjob-impl\\\\target\\gmjob-impl-1.0-SNAPSHOT.jar").toURI().toURL()});
-        URL resource = cl.getResource("gm_consumer.xml");
+//        URL resource = cl.getResource("gm_consumer.xml");
 //        URL resource = new URL("jar:file:/E:/workspace/gm_platform/gm_gccp/code/trunk/gm-parent/gm-job/gmjob-impl/target/gmjob-impl-1.0-SNAPSHOT.jar!/gm_consumer.xml");
 //        System.out.println(new File(resource.getFile()).exists());
 //        System.out.println(resource.toURI().isOpaque());
+//
+//        BufferedReader reader = new BufferedReader(new InputStreamReader(resource.openStream()));
+//        String s;
+//        try {
+//            while ((s = reader.readLine())!=null){
+//                System.out.println(s);
+//            }
+//        } finally {
+//            reader.close();
+//        }
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(resource.openStream()));
-        String s;
         try {
-            while ((s = reader.readLine())!=null){
-                System.out.println(s);
-            }
-        } finally {
-            reader.close();
+            Class<?> aClass = cl.loadClass("com.mokylin.gm.job.GmJob");
+            System.out.println(aClass);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
