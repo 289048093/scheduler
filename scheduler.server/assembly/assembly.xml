@@ -1,0 +1,40 @@
+<assembly>
+    <id>1.0-SNAPSHOT</id>
+    <formats>
+        <format>tar.gz</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <dependencySets>
+        <dependencySet>
+            <useProjectArtifact>true</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+        </dependencySet>
+    </dependencySets>
+    <fileSets>
+        <fileSet>
+            <directory>/jobs</directory>
+            <outputDirectory>/jobs</outputDirectory>
+            <!--<includes>-->
+                <!--<include>*</include>-->
+            <!--</includes>-->
+        </fileSet>
+        <fileSet>
+            <!-- copy 编译后的 配置文件，filter过滤后的 -->
+            <directory>${project.build.directory}/conf</directory>
+            <outputDirectory>/conf</outputDirectory>
+            <fileMode>0644</fileMode>
+            <!--<includes>-->
+            <!--<include>*</include>-->
+            <!--</includes>-->
+        </fileSet>
+        <fileSet>
+            <directory>/bin</directory>
+            <outputDirectory>/bin</outputDirectory>
+            <fileMode>0755</fileMode>
+            <!--<includes>-->
+                <!--<include>startup.sh</include>-->
+                <!--<include>startup.bat</include>-->
+            <!--</includes>-->
+        </fileSet>
+    </fileSets>
+</assembly>

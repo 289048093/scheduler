@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <appender name="PROJECT" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="${loggingRoot}/scheduler.log"/>
+        <param name="Append" value="true"/>
+        <param name="Encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%d{yyyy-MM-dd HH:mm:ss sss} [%X{requestURIWithQueryString}] [%p] %l - %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="PROJECT_ERROR" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="${loggingRoot}/scheduler-error.log"/>
+        <param name="Append" value="false"/>
+        <param name="Encoding" value="UTF-8"/>
+        <param name="Threshold" value="ERROR"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%d{yyyy-MM-dd HH:mm:ss sss} [%X{requestURIWithQueryString}] [%p] %l - %m%n"/>
+        </layout>
+    </appender>
+    <appender name="PROJECT_WARN" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="${loggingRoot}/scheduler-warn.log"/>
+        <param name="Append" value="false"/>
+        <param name="Encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%d{yyyy-MM-dd HH:mm:ss sss} [%X{requestURIWithQueryString}] [%p] %l - %m%n"/>
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="LevelMin" value="WARN"/>
+            <param name="LevelMax" value="WARN"/>
+        </filter>
+    </appender>
+    <appender name="PROJECT_DEBUG" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="${loggingRoot}/scheduler-debug.log"/>
+        <param name="Append" value="false"/>
+        <param name="Encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%d{yyyy-MM-dd HH:mm:ss sss} [%X{requestURIWithQueryString}] [%p] %l - %m%n"/>
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="LevelMin" value="DEBUG"/>
+            <param name="LevelMax" value="DEBUG"/>
+        </filter>
+    </appender>
+    <appender name="PROJECT_INFO" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="${loggingRoot}/scheduler-info.log"/>
+        <param name="Append" value="false"/>
+        <param name="Encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%d{yyyy-MM-dd HH:mm:ss sss} [%X{requestURIWithQueryString}] [%p] %l - %m%n"/>
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="LevelMin" value="INFO"/>
+            <param name="LevelMax" value="INFO"/>
+        </filter>
+    </appender>
+
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%d{yyyy-MM-dd HH:mm:ss sss} [%X{requestURIWithQueryString}] [%p] %l - %m%n"/>
+        </layout>
+    </appender>
+
+    <!-- spring log -->
+    <logger name="org.springframework">
+        <level value="ERROR"/>
+    </logger>
+
+    <!-- project log -->
+    <logger name="com.mykylin.gm">
+        <level value="DEBUG"/>
+    </logger>
+    <!-- apache log -->
+    <logger name="org.apache">
+        <level value="ERROR"/>
+    </logger>
+
+    <root>
+        <level value="DEBUG"/>
+        <appender-ref ref="PROJECT"/>
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="PROJECT_ERROR"/>
+        <appender-ref ref="PROJECT_WARN"/>
+        <appender-ref ref="PROJECT_INFO"/>
+        <appender-ref ref="PROJECT_DEBUG"/>
+    </root>
+</log4j:configuration>

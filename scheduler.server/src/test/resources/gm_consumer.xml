@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans        http://www.springframework.org/schema/beans/spring-beans.xsd        http://code.alibabatech.com/schema/dubbo        http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+    <!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 -->
+    <dubbo:application name="scheduler-consumer-mokylin-gm-job" />
+    <!-- dubbo接口去除注册中心，采用直连的方式  -->
+    <!--  <dubbo:registry address="N/A" ></dubbo:registry> -->
+    <!-- 使用multicast广播注册中心暴露发现服务地址 -->
+    <!--   <dubbo:registry address="multicast://224.5.6.7:1234?unicast=false" />-->
+    <!--
+         <dubbo:registry protocol="zookeeper" address="10.254.201.68:2181,10.254.201.232:2181"
+  />
+    -->
+    <!-- 生成远程服务代理，可以和本地bean一样使用 -->
+    <dubbo:consumer timeout="30000" >
+    </dubbo:consumer>
+
+    <!-- 生成远程服务代理，可以和本地bean一样使用demoService -->
+    <dubbo:reference interface="com.mokylin.gm.scheduler.rpc.SchedulerCallBack"
+                     id="schedulerService"
+                     url="dubbo://127.0.0.1:20881/gm_broadcast_scheduler"
+                     version="1.0"/>
+                     <!--url="dubbo://127.0.0.1:20881/com.mokylin.gm.scheduler.rpc.SchedulerService"-->
+
+</beans>

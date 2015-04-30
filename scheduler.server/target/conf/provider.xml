@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+          http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+          http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+          http://code.alibabatech.com/schema/dubbo
+          http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-lazy-init="true">
+    <context:component-scan base-package="com.mokylin.gm"><!-- base-package 如果多个，用“,”分隔 -->
+    </context:component-scan>
+
+    <!-- 提供方应用信息，用于计算依赖关系 -->
+    <dubbo:application name="scheduler-mokylin-gm" id="application"></dubbo:application>
+    <!-- dubbo接口去除注册中心，采用直连的方式  -->
+    <!--<dubbo:registry address="N/A" />-->
+    <dubbo:registry protocol="zookeeper" address="168.168.1.92:2181,168.168.1.92:2182" />
+    <!-- 使用multicast广播注册中心暴露发现服务地址 -->
+    <!--   <dubbo:registry address="multicast://224.5.6.7:1234?unicast=false" />-->
+    <!--dubbo集群开发，请激活下面条目，并注销上面的多播multicast -->
+    <!--<dubbo:registry protocol="zookeeper" address="10.254.201.232:2181,10.254.201.68:2181" />-->
+    <!-- 用dubbo协议在20880端口暴露服务 -->
+    <dubbo:protocol name="dubbo" port="20882" ></dubbo:protocol>
+
+    <!-- 声明需要暴露的服务接口 -->
+    <dubbo:service interface="com.mokylin.gm.scheduler.rpc.SchedulerService" ref="schedulerService" path="gm_scheduler" version="1.0"/>
+
+    <!-- 和本地bean一样实现服务 -->
+    <bean id="schedulerService" class="com.mokylin.gm.scheduler.rpc.impl.SchedulerServiceImpl" />
+
+    <dubbo:reference interface="com.mokylin.gm.scheduler.rpc.SchedulerCallBack"
+                     id="schedulerCallBack"
+                     version="1.0"/>
+
+</beans>
