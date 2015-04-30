@@ -3,3 +3,5 @@
 /scheduler.server/target
 /scheduler.rpc/target
 /scheduler.rpc/*.iml
+*.iml
+/scheduler.rpc/scheduler.rpc.iml
